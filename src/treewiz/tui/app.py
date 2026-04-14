@@ -275,11 +275,10 @@ class TreewizApp(App):
 
     def action_help(self) -> None:
         help_text = (
-            "j/k: move up/down  |  l/Enter: enter dir  |  h: go up\n"
-            "d: external diff   |  e: edit file         |  t: tig\n"
-            "s: push L→R        |  p: pull R→L          |  m: check/uncheck\n"
-            "=: toggle same     |  r: refresh            |  X: swap L⇄R\n"
-            "!: shell           |  "
-            "q: quit"
+            "j/k: move up/down       |  ctrl+d/u: page down/up  |  l/Enter: enter dir\n"
+            "h: go up                |  d: diff                 |  e: edit file\n"
+            "t: tig                  |  s: push L→R             |  p: pull R→L\n"
+            "m: check/uncheck        |  =: toggle same          |  r: refresh\n"
+            "X: swap L⇄R             |  !: shell                |  q: quit"
         )
         self.notify(help_text, title="Keybindings", timeout=10)

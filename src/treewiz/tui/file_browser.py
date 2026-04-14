@@ -35,6 +35,8 @@ class FileBrowser(Widget, can_focus=True):
     BINDINGS = [
         Binding("j", "cursor_down", "Down", show=False),
         Binding("k", "cursor_up", "Up", show=False),
+        Binding("ctrl+d", "page_down", "Page down", show=False),
+        Binding("ctrl+u", "page_up", "Page up", show=False),
         Binding("l", "select_item", "Enter", show=False),
         Binding("enter", "select_item", "Enter", show=False),
         Binding("h", "go_up", "Back", show=False),
@@ -154,6 +156,24 @@ class FileBrowser(Widget, can_focus=True):
             idx = ol.highlighted or 0
             if idx > 0:
                 ol.highlighted = idx - 1
+
+    def action_page_down(self) -> None:
+        ol = self.option_list
+        if ol.option_count > 0:
+            # Move down by approximately half the visible height (page size)
+            page_size = max(1, ol.region.height - 2) // 2
+            idx = ol.highlighted or 0
+            new_idx = min(idx + page_size, ol.option_count - 1)
+            ol.highlighted = new_idx
+
+    def action_page_up(self) -> None:
+        ol = self.option_list
+        if ol.option_count > 0:
+            # Move up by approximately half the visible height (page size)
+            page_size = max(1, ol.region.height - 2) // 2
+            idx = ol.highlighted or 0
+            new_idx = max(idx - page_size, 0)
+            ol.highlighted = new_idx
 
     def action_select_item(self) -> None:
         ol = self.option_list
