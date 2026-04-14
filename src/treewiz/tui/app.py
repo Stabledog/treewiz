@@ -13,9 +13,10 @@ from textual.widgets import Footer, Header, Static
 
 from treewiz.model.inventory import FileEntry, FileState, TreePair, scan
 from treewiz.model.actions import push_files, pull_files
-from treewiz.model.config import load_config
+from treewiz.model.config import load_config, add_ignore_pattern
 from treewiz.tui.file_browser import FileBrowser
 from treewiz.tui.diff_panel import DiffPanel
+from treewiz.tui.ignore_modal import IgnoreTargetModal
 
 
 class TreewizApp(App):
@@ -67,6 +68,7 @@ class TreewizApp(App):
         Binding("t", "open_tig", "Tig"),
         Binding("s", "push_file", "Push L→R"),
         Binding("p", "pull_file", "Pull R→L"),
+        Binding("i", "add_to_ignore", "Ignore"),
         Binding("exclamation_mark", "open_shell", "Shell"),
         Binding("question_mark", "help", "Help"),
         Binding("r", "refresh", "Refresh"),
@@ -81,6 +83,7 @@ class TreewizApp(App):
         self._tree_pair = TreePair(self._left_root, self._right_root, self._current_node)
         self._config = load_config(self._left_root, self._right_root, self._current_node)
         self._current_entry: FileEntry | None = None
+        self._current_dir_name: str | None = None
 
     def compose(self) -> ComposeResult:
         yield Static(id="node-bar")
@@ -139,8 +142,10 @@ class TreewizApp(App):
         if event.is_dir:
             diff_panel.show_dir_info(event.dir_name)
             self._current_entry = None
+            self._current_dir_name = event.dir_name
         else:
             self._current_entry = event.entry
+            self._current_dir_name = None
             diff_panel.show_entry(event.entry)
 
     def on_file_browser_file_selected(self, event: FileBrowser.FileSelected) -> None:
@@ -257,6 +262,24 @@ class TreewizApp(App):
             self.notify(f"Pulled: {', '.join(copied)}")
         self._rescan()
 
+    def action_add_to_ignore(self) -> None:
+        name = self._current_entry.path if self._current_entry else self._current_dir_name
+        if not name:
+            self.notify("Nothing selected", severity="warning")
+            return
+        self.run_worker(self._do_add_to_ignore(name))
+
+    async def _do_add_to_ignore(self, name: str) -> None:
+        result = await self.push_screen_wait(IgnoreTargetModal(name))
+        if result is None:
+            return
+        root = self._tree_pair.left_root if result == "left" else self._tree_pair.right_root
+        subdir = self._current_node
+        rc_path = (root / subdir / ".treewizrc") if subdir else (root / ".treewizrc")
+        add_ignore_pattern(rc_path, name)
+        self.notify(f"Ignored '{name}' in {result} tree")
+        self._rescan()
+
     # ------------------------------------------------------------------
     # Swap
     # ------------------------------------------------------------------
@@ -280,7 +303,8 @@ class TreewizApp(App):
             "j/k: move up/down       |  ctrl+d/u: page down/up  |  l/Enter: enter dir\n"
             "h: go up                |  d: diff                 |  e: edit file\n"
             "t: tig                  |  s: push L→R             |  p: pull R→L\n"
-            "m: check/uncheck        |  =: toggle same          |  r: refresh\n"
-            "X: swap L⇄R             |  !: shell                |  q: quit"
+            "i: ignore               |  m: check/uncheck        |  =: toggle same\n"
+            "r: refresh              |  X: swap L⇄R             |  !: shell\n"
+            "q: quit"
         )
         self.notify(help_text, title="Keybindings", timeout=10)

@@ -99,7 +99,7 @@ def git_root(path: Path) -> Path:
 # ---------------------------------------------------------------------------
 
 def _ls_tracked(repo_root: Path, scope: str) -> dict[str, str]:
-    """Return {relative_path: blob_hash} for tracked files under *scope*."""
+    """Return {relative_path: content_hash} for tracked files under *scope*."""
     scope_dir = scope if scope else "."
     result = subprocess.run(
         ["git", "ls-files", "-s", scope_dir],
@@ -112,12 +112,17 @@ def _ls_tracked(repo_root: Path, scope: str) -> dict[str, str]:
     prefix = (scope + "/") if scope else ""
     for line in result.stdout.splitlines():
         meta, path = line.split("\t", 1)
-        blob_hash = meta.split()[1]
         if prefix and path.startswith(prefix):
             path = path[len(prefix):]
         elif prefix:
             continue
-        files[path] = blob_hash
+        # Hash file content for consistent comparison across tracked/untracked
+        full = repo_root / (f"{scope}/{path}" if scope else path)
+        try:
+            content = full.read_bytes()
+            files[path] = hashlib.sha256(content).hexdigest()
+        except OSError:
+            pass
     return files
 
 

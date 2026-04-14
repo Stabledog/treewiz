@@ -62,3 +62,45 @@ def load_config(left_root: Path, right_root: Path, current_node: str) -> dict:
             cfg = _merge(cfg, load_rc(rc))
 
     return cfg
+
+
+def _toml_value(v) -> str:
+    """Serialize a Python value to a TOML value string."""
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    elif isinstance(v, str):
+        return f'"{v}"'
+    elif isinstance(v, list):
+        items = ", ".join(
+            f'"{item}"' if isinstance(item, str) else str(item) for item in v
+        )
+        return f"[{items}]"
+    return str(v)
+
+
+def _write_rc(path: Path, data: dict) -> None:
+    """Serialize *data* back to a .treewizrc TOML file."""
+    lines = []
+    for section, values in data.items():
+        if lines:
+            lines.append("")
+        lines.append(f"[{section}]")
+        for key, val in values.items():
+            if isinstance(val, dict):
+                # Inline table (e.g., tools section)
+                inner = ", ".join(f"{k} = {_toml_value(v)}" for k, v in val.items())
+                lines.append(f"{key} = {{{inner}}}")
+            else:
+                lines.append(f"{key} = {_toml_value(val)}")
+    content = "\n".join(lines)
+    path.write_text(content + "\n" if content else "")
+
+
+def add_ignore_pattern(rc_path: Path, pattern: str) -> None:
+    """Add *pattern* to [ignore] patterns in *rc_path*, creating the file if needed."""
+    data = load_rc(rc_path)
+    ignore = data.setdefault("ignore", {})
+    patterns = ignore.setdefault("patterns", [])
+    if pattern not in patterns:
+        patterns.append(pattern)
+        _write_rc(rc_path, data)
