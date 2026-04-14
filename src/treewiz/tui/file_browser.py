@@ -39,7 +39,7 @@ class FileBrowser(Widget, can_focus=True):
         Binding("enter", "select_item", "Enter", show=False),
         Binding("h", "go_up", "Back", show=False),
         Binding("u", "go_up", "Back", show=False),
-        Binding("equals", "toggle_same", "Toggle same", show=False),
+        Binding("equals_sign", "toggle_same", "Toggle same", show=False),
         Binding("m", "toggle_check", "Check/uncheck", show=False),
     ]
 

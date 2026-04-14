@@ -29,14 +29,14 @@ def _merge(base: dict, override: dict) -> dict:
 
 
 def load_rc(path: Path) -> dict:
-    """Parse a single .treewizrc file.  Returns empty dict on any failure."""
+    """Parse a single .treewizrc file. Raises error on parse failure."""
     if not path.exists():
         return {}
     try:
         with open(path, "rb") as f:
             return tomllib.load(f)
-    except Exception:
-        return {}
+    except Exception as e:
+        raise ValueError(f"Failed to parse {path}: {e}") from e
 
 
 def load_config(left_root: Path, right_root: Path, current_node: str) -> dict:
