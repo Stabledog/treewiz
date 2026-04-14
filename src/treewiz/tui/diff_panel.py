@@ -68,6 +68,8 @@ class DiffPanel(Widget):
             content.update(Text(f"  {entry.path}\n  exists only in RIGHT tree", style=theme.RIGHT_ONLY))
         elif entry.state == FileState.SAME:
             content.update(Text(f"  {entry.path}\n  identical in both trees", style=theme.SAME))
+        elif entry.state == FileState.BLESSED:
+            content.update(Text(f"  {entry.path}\n  blessed — difference accepted at current versions", style=theme.BLESSED))
 
     def show_dir_info(self, dir_name: str) -> None:
         """Show summary for a directory."""
@@ -81,6 +83,7 @@ class DiffPanel(Widget):
         mismatched = sum(1 for e in entries if e.state == FileState.MISMATCH)
         left_only = sum(1 for e in entries if e.state == FileState.LEFT_ONLY)
         right_only = sum(1 for e in entries if e.state == FileState.RIGHT_ONLY)
+        blessed = sum(1 for e in entries if e.state == FileState.BLESSED)
         same = sum(1 for e in entries if e.state == FileState.SAME)
 
         t = Text()
@@ -91,6 +94,8 @@ class DiffPanel(Widget):
             t.append(f"  {left_only} L-only\n", style=theme.LEFT_ONLY)
         if right_only:
             t.append(f"  {right_only} R-only\n", style=theme.RIGHT_ONLY)
+        if blessed:
+            t.append(f"  {blessed} blessed\n", style=theme.BLESSED)
         if same:
             t.append(f"  {same} same\n", style=theme.SAME)
         content.update(t)

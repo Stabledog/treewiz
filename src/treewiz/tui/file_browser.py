@@ -99,7 +99,7 @@ class FileBrowser(Widget, can_focus=True):
         for d in inv.dirs:
             from treewiz.model.inventory import _dir_state
             state = _dir_state(d, inv.files)
-            if state == FileState.SAME and not self.show_same:
+            if state in (FileState.SAME, FileState.BLESSED) and not self.show_same:
                 continue
             label = Text()
             label.append("  ", style="")
@@ -112,7 +112,7 @@ class FileBrowser(Widget, can_focus=True):
         for path, entry in sorted(inv.files.items()):
             if "/" in path:
                 continue  # belongs to a subdirectory
-            if entry.state == FileState.SAME and not self.show_same:
+            if entry.state in (FileState.SAME, FileState.BLESSED) and not self.show_same:
                 continue
             check = " \u2713" if entry.checked else "  "
             label = Text()

@@ -78,6 +78,14 @@ def _toml_value(v) -> str:
     return str(v)
 
 
+def _quote_key(key: str) -> str:
+    """Quote a TOML key if it contains special characters."""
+    # For simplicity, always quote keys with special chars like /
+    if "/" in key or " " in key or any(c in key for c in '.-'):
+        return f'"{key}"'
+    return key
+
+
 def _write_rc(path: Path, data: dict) -> None:
     """Serialize *data* back to a .treewizrc TOML file."""
     lines = []
@@ -91,7 +99,8 @@ def _write_rc(path: Path, data: dict) -> None:
                 inner = ", ".join(f"{k} = {_toml_value(v)}" for k, v in val.items())
                 lines.append(f"{key} = {{{inner}}}")
             else:
-                lines.append(f"{key} = {_toml_value(val)}")
+                # Handle regular values and lists (including blessed entries)
+                lines.append(f"{_quote_key(key)} = {_toml_value(val)}")
     content = "\n".join(lines)
     path.write_text(content + "\n" if content else "")
 
@@ -104,3 +113,14 @@ def add_ignore_pattern(rc_path: Path, pattern: str) -> None:
     if pattern not in patterns:
         patterns.append(pattern)
         _write_rc(rc_path, data)
+
+
+def add_blessed_entry(rc_path: Path, filename: str, left_hash: str, right_hash: str) -> None:
+    """Add or update a blessed entry in [blessed] section of *rc_path*.
+
+    Creates the file if needed.
+    """
+    data = load_rc(rc_path)
+    blessed = data.setdefault("blessed", {})
+    blessed[filename] = [left_hash, right_hash]
+    _write_rc(rc_path, data)

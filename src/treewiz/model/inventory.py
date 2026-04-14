@@ -15,6 +15,7 @@ class FileState(Enum):
     MISMATCH = "mismatch"
     LEFT_ONLY = "left-only"
     RIGHT_ONLY = "right-only"
+    BLESSED = "blessed"
 
 
 @dataclass
@@ -80,6 +81,10 @@ class Inventory:
     @property
     def right_only(self) -> list[FileEntry]:
         return [f for f in self.files.values() if f.state == FileState.RIGHT_ONLY]
+
+    @property
+    def blessed(self) -> list[FileEntry]:
+        return [f for f in self.files.values() if f.state == FileState.BLESSED]
 
 
 def git_root(path: Path) -> Path:
@@ -235,6 +240,36 @@ def _should_ignore(path: str, left_root: Path, right_root: Path, scope: str) -> 
 
 
 # ---------------------------------------------------------------------------
+# Blessed files — .treewizrc [blessed] section
+# ---------------------------------------------------------------------------
+
+def _load_blessed_for_dir(left_root: Path, right_root: Path, directory: str) -> dict[str, tuple[str, str]]:
+    """Load blessed entries from .treewizrc [blessed] section in *directory*.
+
+    Returns {filename: (left_hash, right_hash)} for files that have been blessed.
+    Left tree is canonical; right tree can supplement.
+    """
+    result = {}
+    for root in (right_root, left_root):  # left wins on conflict
+        base = root / directory if directory else root
+        rc = base / ".treewizrc"
+        if not rc.exists():
+            continue
+        try:
+            import tomllib
+            with open(rc, "rb") as f:
+                data = tomllib.load(f)
+            blessed = data.get("blessed", {})
+            if isinstance(blessed, dict):
+                for name, hashes in blessed.items():
+                    if isinstance(hashes, list) and len(hashes) == 2:
+                        result[name] = (hashes[0], hashes[1])
+        except Exception:
+            pass
+    return result
+
+
+# ---------------------------------------------------------------------------
 # Directory aggregation — for the file browser
 # ---------------------------------------------------------------------------
 
@@ -290,6 +325,9 @@ def scan(tree_pair: TreePair) -> Inventory:
         if not _should_ignore(p, left_root, right_root, scope)
     ]
 
+    # Cache blessed entries per-directory to avoid repeated .treewizrc reads
+    blessed_cache: dict[str, dict[str, tuple[str, str]]] = {}
+
     entries: dict[str, FileEntry] = {}
     for path in filtered:
         lh = left_files.get(path)
@@ -300,6 +338,24 @@ def scan(tree_pair: TreePair) -> Inventory:
             state = FileState.LEFT_ONLY
         else:
             state = FileState.RIGHT_ONLY
+
+        # Upgrade MISMATCH to BLESSED if hashes match a blessed entry
+        if state == FileState.MISMATCH:
+            parent_path = str(Path(path).parent) if "/" in path else ""
+            if scope and parent_path:
+                parent_dir = f"{scope}/{parent_path}"
+            elif scope:
+                parent_dir = scope
+            else:
+                parent_dir = parent_path
+
+            if parent_dir not in blessed_cache:
+                blessed_cache[parent_dir] = _load_blessed_for_dir(left_root, right_root, parent_dir)
+
+            filename = Path(path).name
+            if blessed_cache[parent_dir].get(filename) == (lh, rh):
+                state = FileState.BLESSED
+
         entries[path] = FileEntry(path=path, state=state, left_hash=lh, right_hash=rh)
 
     dirs, _ = _extract_top_level(filtered)

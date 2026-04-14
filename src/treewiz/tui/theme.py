@@ -7,6 +7,7 @@ MISMATCH = Style(color="yellow", bold=True)
 LEFT_ONLY = Style(color="red")
 RIGHT_ONLY = Style(color="green")
 SAME = Style(color="bright_black")
+BLESSED = Style(color="cyan", bold=True)
 
 # UI elements
 HEADER_STYLE = Style(color="white", bold=True)
@@ -21,4 +22,5 @@ BADGES = {
     "mismatch": ("[mismatch]", MISMATCH),
     "left-only": ("[L-only]", LEFT_ONLY),
     "right-only": ("[R-only]", RIGHT_ONLY),
+    "blessed": ("[blessed]", BLESSED),
 }

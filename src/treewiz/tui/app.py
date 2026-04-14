@@ -13,7 +13,7 @@ from textual.widgets import Footer, Header, Static
 
 from treewiz.model.inventory import FileEntry, FileState, TreePair, scan
 from treewiz.model.actions import push_files, pull_files
-from treewiz.model.config import load_config, add_ignore_pattern
+from treewiz.model.config import load_config, add_ignore_pattern, add_blessed_entry
 from treewiz.tui.file_browser import FileBrowser
 from treewiz.tui.diff_panel import DiffPanel
 from treewiz.tui.ignore_modal import IgnoreTargetModal
@@ -69,6 +69,7 @@ class TreewizApp(App):
         Binding("s", "push_file", "Push L→R"),
         Binding("p", "pull_file", "Pull R→L"),
         Binding("i", "add_to_ignore", "Ignore"),
+        Binding("b", "bless_file", "Bless"),
         Binding("exclamation_mark", "open_shell", "Shell"),
         Binding("question_mark", "help", "Help"),
         Binding("r", "refresh", "Refresh"),
@@ -280,6 +281,24 @@ class TreewizApp(App):
         self.notify(f"Ignored '{name}' in {result} tree")
         self._rescan()
 
+    def action_bless_file(self) -> None:
+        """Bless the current file (record its hashes as an accepted difference)."""
+        entry = self._current_entry
+        if not entry:
+            self.notify("No file selected", severity="warning")
+            return
+        if entry.state != FileState.MISMATCH:
+            self.notify("Only MISMATCH files can be blessed", severity="warning")
+            return
+        self.run_worker(self._do_bless_file(entry))
+
+    async def _do_bless_file(self, entry: FileEntry) -> None:
+        subdir = self._current_node
+        rc_path = (self._tree_pair.left_root / subdir / ".treewizrc") if subdir else (self._tree_pair.left_root / ".treewizrc")
+        add_blessed_entry(rc_path, entry.path, entry.left_hash, entry.right_hash)
+        self.notify(f"Blessed '{entry.path}'")
+        self._rescan()
+
     # ------------------------------------------------------------------
     # Swap
     # ------------------------------------------------------------------
@@ -303,8 +322,8 @@ class TreewizApp(App):
             "j/k: move up/down       |  ctrl+d/u: page down/up  |  l/Enter: enter dir\n"
             "h: go up                |  d: diff                 |  e: edit file\n"
             "t: tig                  |  s: push L→R             |  p: pull R→L\n"
-            "i: ignore               |  m: check/uncheck        |  =: toggle same\n"
-            "r: refresh              |  X: swap L⇄R             |  !: shell\n"
-            "q: quit"
+            "i: ignore               |  b: bless                |  m: check/uncheck\n"
+            "=: toggle same          |  r: refresh              |  X: swap L⇄R\n"
+            "!: shell                |  q: quit"
         )
         self.notify(help_text, title="Keybindings", timeout=10)
