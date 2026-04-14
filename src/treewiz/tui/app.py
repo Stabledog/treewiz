@@ -125,8 +125,10 @@ class TreewizApp(App):
 
         left_hdr = self.query_one("#tree-header-left", Static)
         right_hdr = self.query_one("#tree-header-right", Static)
-        left_hdr.update(f" [L] {self._left_root}")
-        right_hdr.update(f" [R] {self._right_root}")
+        left_full = self._left_root / self._current_node if self._current_node else self._left_root
+        right_full = self._right_root / self._current_node if self._current_node else self._right_root
+        left_hdr.update(f" [L] {left_full}")
+        right_hdr.update(f" [R] {right_full}")
 
     # ------------------------------------------------------------------
     # File browser messages
