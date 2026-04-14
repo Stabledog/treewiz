@@ -99,6 +99,8 @@ class FileBrowser(Widget, can_focus=True):
         for d in inv.dirs:
             from treewiz.model.inventory import _dir_state
             state = _dir_state(d, inv.files)
+            if state == FileState.SAME and not self.show_same:
+                continue
             label = Text()
             label.append("  ", style="")
             label.append(f"{d}/", style=theme.DIR_STYLE)
