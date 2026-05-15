@@ -8,6 +8,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The app displays two side-by-side directory trees, classifies files as SAME, MISMATCH, LEFT_ONLY, or RIGHT_ONLY, and provides interactive tools to diff, edit, and push/pull files between the trees. External tools (diff viewer, editor, git history) are configurable and can be launched from the TUI.
 
+## Relationship to treewiz-cli (dotkit)
+
+There is an older CLI tool called `treewiz-cli` at `~/.local/bin/treewiz-kit/` that
+predates this TUI. They share no code but solve overlapping problems. See
+[TRANSITION.md](TRANSITION.md) for the full story.
+
+Key points for contributors:
+- **This repo is the canonical treewiz going forward.** The CLI is being superseded.
+- Do NOT add dotkit-specific logic here (reconcile-status.sh, kit markers, loop-kits).
+- The model layer (`src/treewiz/model/`) is designed to be importable as a library,
+  which will eventually let the dotkit depend on it instead of maintaining its own copy.
+- Naming convention here is **left/right** (screen position), not ref/tgt.
+
 **Key Dependencies:**
 - **Textual** (>=0.40): MIT-licensed TUI framework built on Rich, provides widgets, CSS-like styling, keybindings, and layout
 - **Python** 3.12+
