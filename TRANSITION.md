@@ -59,6 +59,20 @@ These features have no equivalent in the TUI yet:
 3. The dotkit's `status`, `diff`, `edit`, `push`, `pull` subcommands are superseded
    by the TUI and can be deprecated once the TUI is stable.
 
+## Installation (Current Arrangement)
+
+The treewiz TUI is installed by `treewiz-kit/setup.sh` as a bridging measure while the
+tools are still separate packages. Running setup on the dotkit installs both:
+
+1. `treewiz-cli` — via `uv tool install -e .` in the treewiz-kit directory (existing)
+2. `treewiz` — via `uv tool install -e ~/workarea/treewiz` (added step)
+
+The source path for treewiz defaults to `~/treewiz`. If that directory doesn't exist,
+setup clones it automatically from `https://github.com/Stabledog/treewiz`. The location
+can be overridden with the `TREEWIZ_SRC` environment variable, in which case the directory
+must already exist (no auto-clone for explicit paths). Setup fails hard if the source is
+missing (`uv` is guaranteed present via the `python-setup` dotkit dependency).
+
 ## Current State (May 2026)
 
 Both tools are at v0.1.0. The TUI is functional but has no tests. The CLI has tests
